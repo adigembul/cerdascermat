@@ -3,15 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Game Cerdas Cermat Modern</title>
+  <title>Cerdas Cermat SMP</title>
   <!-- Menggunakan Font Montserrat -->
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <!-- YouTube Iframe API -->
-  <script src="https://www.youtube.com/iframe_api"></script>
   <style>
     /* VARIABLES (Dual Theme) */
     :root {
-      /* LIGHT MODE (Lebih redup/teduh, tidak terlalu terang) */
+      /* LIGHT MODE */
       --bg-gradient: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
       --panel-bg: rgba(248, 250, 252, 0.85);
       --panel-border: rgba(203, 213, 225, 0.6);
@@ -65,7 +63,7 @@
       min-height: 100%;
       display: grid;
       place-items: center;
-      padding: 15px; /* Lebih ramah mobile */
+      padding: 15px;
     }
 
     .shell {
@@ -131,6 +129,23 @@
     }
     .icon-btn:hover { background: var(--card-bg); transform: scale(1.05); }
 
+    /* AUDIO CONTROLS */
+    .audio-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--card-bg);
+      padding: 4px 12px 4px 4px;
+      border-radius: 50px;
+      border: 1px solid var(--panel-border);
+      box-shadow: var(--shadow-sm);
+    }
+    .vol-slider {
+      width: 70px;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
     /* STAGE & CARDS */
     .stage { padding: 20px; }
     .card {
@@ -173,6 +188,21 @@
     .active-setting { background: var(--primary) !important; color: white !important; border-color: var(--primary) !important; }
 
     .flex-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    /* FILE UPLOAD STYLING */
+    .file-upload-box {
+      border: 2px dashed var(--panel-border);
+      padding: 15px;
+      border-radius: 16px;
+      text-align: center;
+      background: var(--input-bg);
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .file-upload-box:hover { border-color: var(--primary); background: var(--card-bg); }
+    .file-upload-box input[type="file"] { display: none; }
+    .file-upload-box label { cursor: pointer; display: block; font-weight: 600; color: var(--text-main); }
+    .file-name { display: block; margin-top: 5px; font-size: 12px; color: var(--primary); font-weight: 700; }
 
     /* QUIZ SECTION */
     .quiz-head {
@@ -269,6 +299,7 @@
       .q-text { font-size: 18px; }
       .timer { padding: 8px 12px; }
       .timer span { font-size: 18px; }
+      .vol-slider { width: 55px; }
     }
     @media (max-width: 480px) {
       .app { padding: 10px; }
@@ -282,8 +313,8 @@
 </head>
 <body>
 
-  <!-- HIDDEN YOUTUBE PLAYER FOR BGM -->
-  <div id="ytplayer" class="hidden"></div>
+  <!-- HIDDEN LOCAL AUDIO PLAYER -->
+  <audio id="localAudioPlayer" loop></audio>
 
   <!-- TOAST NOTIFICATION -->
   <div id="toast">Notifikasi</div>
@@ -308,12 +339,19 @@
       <div class="topbar">
         <div class="brand">
           <div class="logo">Q</div>
-          <span>Cerdas Cermat PRO</span>
+          <span>CERDAS CERMAT SMP - Rumah Edukasi Digital</span>
         </div>
         <div class="hud-container">
           <div class="pill hidden" id="hudName">👤 Player</div>
           <div class="pill hidden" id="hudScore">Skor: 0</div>
           <div class="pill hidden" id="hudProgress">0/0</div>
+          
+          <!-- BGM AUDIO CONTROLS -->
+          <div class="audio-controls hidden" id="audioControls">
+            <button class="icon-btn" id="btnMute" style="border:none; width:30px; height:30px;" title="Mute/Unmute BGM">🔊</button>
+            <input type="range" id="volSlider" class="vol-slider" min="0" max="100" value="30" title="Volume BGM" />
+          </div>
+
           <button class="icon-btn" id="btnFullscreen" title="Toggle Fullscreen">⛶</button>
           <button class="icon-btn" id="btnHome" title="Kembali ke Awal">🏠</button>
           <button class="icon-btn" id="themeToggle" title="Ganti Tema">🌙</button>
@@ -334,22 +372,42 @@
         <div id="screenStart" class="card hidden">
           <h2 class="title">Aturan Main & Setting</h2>
           <p class="subtitle">
-            Pilih jumlah soal. Setiap soal diberi waktu 15 detik.<br>
+            Pilih kategori, jumlah soal, dan lagu BGM lokal. Setiap soal diberi waktu 15 detik.<br>
             <b style="color: var(--danger)">Peringatan:</b> Sistem Anti-Nyontek aktif. Dilarang pindah tab selama soal berlangsung!
           </p>
           
+          <!-- PILIH KATEGORI -->
+          <div style="margin-bottom: 20px;">
+            <div style="font-weight: 700; margin-bottom: 12px; font-size: 15px;">Pilih Kategori Pelajaran:</div>
+            <div class="flex-row">
+              <button class="btn btn-outline category-btn active-setting" data-cat="umum">🌍 Pengetahuan Umum</button>
+              <button class="btn btn-outline category-btn" data-cat="agama">🕌 Agama Islam</button>
+              <button class="btn btn-outline category-btn" data-cat="matematika">📐 Matematika</button>
+            </div>
+          </div>
+
+          <!-- PILIH JUMLAH SOAL -->
           <div style="margin-bottom: 20px;">
             <div style="font-weight: 700; margin-bottom: 12px; font-size: 15px;">Pilih Jumlah Soal:</div>
             <div class="flex-row">
-              <button class="btn btn-outline active-setting" data-count="10">10 Soal</button>
-              <button class="btn btn-outline" data-count="20">20 Soal</button>
-              <button class="btn btn-outline" data-count="30">30 Soal</button>
-              <button class="btn btn-outline" data-count="50">50 Soal</button>
+              <button class="btn btn-outline count-btn active-setting" data-count="10">10 Soal</button>
+              <button class="btn btn-outline count-btn" data-count="20">20 Soal</button>
+              <button class="btn btn-outline count-btn" data-count="30">30 Soal</button>
+              <button class="btn btn-outline count-btn" data-count="50">50 Soal</button>
+            </div>
+          </div>
+
+          <!-- PILIH BGM LOKAL -->
+          <div style="margin-bottom: 25px;">
+            <div style="font-weight: 700; margin-bottom: 12px; font-size: 15px;">BGM Audio Lokal (Opsional):</div>
+            <div class="file-upload-box">
+              <label for="bgmUpload">🎵 Klik untuk pilih file musik (MP3/WAV/OGG)</label>
+              <input type="file" id="bgmUpload" accept="audio/*" />
+              <span class="file-name" id="bgmFileName">Belum ada file terpilih</span>
             </div>
           </div>
 
           <div style="margin-bottom: 25px;">
-            <div style="font-weight: 700; margin-bottom: 12px; font-size: 15px;">Opsi Tambahan:</div>
             <button class="btn btn-outline" id="btnShuffle" style="width: 100%; border-style: dashed;">🔀 Acak Urutan Bank Soal</button>
           </div>
 
@@ -414,120 +472,169 @@
   </div>
 
   <script>
-    // --- YOUTUBE BGM LOGIC ---
-    let ytPlayer;
-    function onYouTubeIframeAPIReady() {
-      ytPlayer = new YT.Player('ytplayer', {
-        height: '0',
-        width: '0',
-        videoId: '3NycM9lYdRI', // Link yang diberikan
-        playerVars: {
-          'autoplay': 0,
-          'controls': 0,
-          'loop': 1,
-          'playlist': '3NycM9lYdRI' // Wajib agar loop jalan di single video
-        },
-        events: {
-          'onReady': onPlayerReady
-        }
-      });
-    }
-
-    function onPlayerReady(event) {
-      event.target.setVolume(15); // Volume samar 15%
-    }
-
-    // --- WEB AUDIO API (Untuk Beep 5 detik terakhir) ---
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    function playBeep() {
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-      
-      const oscillator = audioCtx.createOscillator();
-      const gainNode = audioCtx.createGain();
-      
-      oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(800, audioCtx.currentTime); // Frekuensi nada tinggi (800Hz)
-      gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); // Volume Beep (10%)
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
-      
-      oscillator.start();
-      oscillator.stop(audioCtx.currentTime + 0.1); // Durasi Beep (100ms)
-    }
-
-    // --- FULLSCREEN LOGIC ---
-    const btnFullscreen = document.getElementById('btnFullscreen');
-    
-    function toggleFullscreen() {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(err => {
-          console.warn(`Gagal masuk mode fullscreen: ${err.message}`);
-        });
-      } else {
-        if (document.exitFullscreen) {
-          document.exitFullscreen();
-        }
-      }
-    }
-    btnFullscreen.addEventListener('click', toggleFullscreen);
-
-    // --- QUESTION BANK (50 Soal) ---
-    const questionBank = [
-      { q: "Ibu kota negara Indonesia adalah ...", options: ["Bandung", "Surabaya", "Jakarta", "Medan"], answer: 2 },
-      { q: "Planet terbesar di tata surya adalah ...", options: ["Bumi", "Mars", "Jupiter", "Saturnus"], answer: 2 },
-      { q: "Air membeku pada suhu ...", options: ["0°C", "50°C", "100°C", "-10°C"], answer: 0 },
-      { q: "Presiden pertama Indonesia adalah ...", options: ["Soeharto", "Soekarno", "Habibie", "Jokowi"], answer: 1 },
-      { q: "Hewan yang berkembang biak dengan bertelur disebut ...", options: ["Vivipar", "Ovipar", "Ovovivipar", "Mamalia"], answer: 1 },
-      { q: "Benua terbesar di dunia adalah ...", options: ["Afrika", "Asia", "Eropa", "Amerika"], answer: 1 },
-      { q: "Alat pernapasan pada ikan adalah ...", options: ["Paru-paru", "Insang", "Kulit", "Trakea"], answer: 1 },
-      { q: "Bahasa resmi negara Jepang adalah ...", options: ["Mandarin", "Jepang", "Korea", "Inggris"], answer: 1 },
-      { q: "5 x 6 = ...", options: ["30", "25", "35", "20"], answer: 0 },
-      { q: "Warna dasar terdiri dari ...", options: ["Merah, kuning, biru", "Hijau, ungu, merah", "Hitam, putih, abu", "Oranye, biru, hijau"], answer: 0 },
-      { q: "Gunung tertinggi di dunia adalah ...", options: ["Kilimanjaro", "Everest", "Fuji", "Semeru"], answer: 1 },
-      { q: "Lambang kimia air adalah ...", options: ["O2", "CO2", "H2O", "NaCl"], answer: 2 },
-      { q: "Negara dengan jumlah penduduk terbanyak di dunia adalah ...", options: ["India", "China", "Amerika Serikat", "Indonesia"], answer: 0 },
-      { q: "Alat untuk mengukur suhu adalah ...", options: ["Barometer", "Termometer", "Higrometer", "Anemometer"], answer: 1 },
-      { q: "Pahlawan wanita dari Aceh adalah ...", options: ["R.A Kartini", "Cut Nyak Dien", "Martha Christina", "Dewi Sartika"], answer: 1 },
-      { q: "Matahari terbit di arah ...", options: ["Barat", "Selatan", "Timur", "Utara"], answer: 2 },
-      { q: "Ibukota provinsi Jawa Barat adalah ...", options: ["Bogor", "Bandung", "Bekasi", "Cirebon"], answer: 1 },
-      { q: "Hewan pemakan daging disebut ...", options: ["Herbivora", "Omnivora", "Karnivora", "Insektivora"], answer: 2 },
-      { q: "Alat musik tradisional dari Jawa Barat adalah ...", options: ["Angklung", "Gamelan", "Sasando", "Tifa"], answer: 0 },
-      { q: "10 : 2 = ...", options: ["2", "4", "5", "6"], answer: 2 },
-      { q: "Lapisan atmosfer terluar adalah ...", options: ["Troposfer", "Stratosfer", "Mesosfer", "Eksosfer"], answer: 3 },
-      { q: "Negara yang dijuluki Negeri Sakura adalah ...", options: ["Korea", "Jepang", "China", "Thailand"], answer: 1 },
-      { q: "Proses tumbuhan membuat makanan disebut ...", options: ["Respirasi", "Fotosintesis", "Evaporasi", "Transpirasi"], answer: 1 },
-      { q: "7² = ...", options: ["14", "21", "49", "56"], answer: 2 },
-      { q: "Sungai terpanjang di dunia adalah ...", options: ["Amazon", "Nil", "Mississippi", "Yangtze"], answer: 1 },
-      { q: "Satuan panjang dalam SI adalah ...", options: ["Gram", "Meter", "Liter", "Sekon"], answer: 1 },
-      { q: "Indonesia merdeka pada tahun ...", options: ["1942", "1945", "1950", "1965"], answer: 1 },
-      { q: "Alat untuk melihat benda kecil adalah ...", options: ["Teleskop", "Mikroskop", "Lup", "Periskop"], answer: 1 },
-      { q: "Bintang pada siang hari adalah ...", options: ["Bulan", "Matahari", "Mars", "Venus"], answer: 1 },
-      { q: "12 x 8 = ...", options: ["96", "84", "88", "92"], answer: 0 },
-      { q: "Ibukota negara Thailand adalah ...", options: ["Hanoi", "Bangkok", "Manila", "Kuala Lumpur"], answer: 1 },
-      { q: "Planet yang memiliki cincin adalah ...", options: ["Mars", "Venus", "Saturnus", "Merkurius"], answer: 2 },
-      { q: "Organ peredaran darah manusia adalah ...", options: ["Paru-paru", "Jantung", "Ginjal", "Hati"], answer: 1 },
-      { q: "Bahasa Inggris dari buku adalah ...", options: ["Pen", "Book", "Table", "Chair"], answer: 1 },
-      { q: "15 + 25 = ...", options: ["35", "40", "45", "50"], answer: 1 },
-      { q: "Negara dengan menara Eiffel adalah ...", options: ["Italia", "Inggris", "Prancis", "Spanyol"], answer: 2 },
-      { q: "Gunung tertinggi di Indonesia adalah ...", options: ["Semeru", "Rinjani", "Kerinci", "Puncak Jaya"], answer: 3 },
-      { q: "Hewan yang hidup di dua alam disebut ...", options: ["Reptil", "Amfibi", "Mamalia", "Aves"], answer: 1 },
-      { q: "Alat musik khas NTT adalah ...", options: ["Angklung", "Sasando", "Kolintang", "Rebab"], answer: 1 },
-      { q: "9 x 9 = ...", options: ["72", "81", "90", "99"], answer: 1 },
-      { q: "Negara dengan Patung Liberty adalah ...", options: ["Kanada", "Inggris", "Amerika Serikat", "Australia"], answer: 2 },
-      { q: "Planet terdekat dengan matahari adalah ...", options: ["Venus", "Mars", "Merkurius", "Bumi"], answer: 2 },
-      { q: "Zat cair berubah menjadi gas disebut ...", options: ["Kondensasi", "Evaporasi", "Sublimasi", "Kristalisasi"], answer: 1 },
-      { q: "Lagu kebangsaan Indonesia adalah ...", options: ["Indonesia Raya", "Tanah Airku", "Garuda Pancasila", "Bagimu Negeri"], answer: 0 },
-      { q: "100 : 4 = ...", options: ["20", "25", "30", "40"], answer: 1 },
-      { q: "Organ untuk berpikir adalah ...", options: ["Jantung", "Otak", "Paru-paru", "Hati"], answer: 1 },
-      { q: "Negara tetangga Indonesia di utara adalah ...", options: ["Australia", "Malaysia", "India", "Jepang"], answer: 1 },
-      { q: "Mata uang Jepang adalah ...", options: ["Won", "Yen", "Dollar", "Baht"], answer: 1 },
-      { q: "Warna hasil campuran merah dan kuning adalah ...", options: ["Hijau", "Ungu", "Oranye", "Biru"], answer: 2 },
-      { q: "20 x 5 = ...", options: ["80", "90", "100", "120"], answer: 2 }
-    ];
+    // --- 3 KATEGORI BANK SOAL (Masing-masing 50 Soal) ---
+    const allQuestions = {
+      "umum": [
+        { q: "Ibu kota negara Indonesia adalah ...", options: ["Bandung", "Surabaya", "Jakarta", "Medan"], answer: 2 },
+        { q: "Planet terbesar di tata surya adalah ...", options: ["Bumi", "Mars", "Jupiter", "Saturnus"], answer: 2 },
+        { q: "Air membeku pada suhu ...", options: ["0°C", "50°C", "100°C", "-10°C"], answer: 0 },
+        { q: "Presiden pertama Indonesia adalah ...", options: ["Soeharto", "Soekarno", "Habibie", "Jokowi"], answer: 1 },
+        { q: "Hewan yang berkembang biak dengan bertelur disebut ...", options: ["Vivipar", "Ovipar", "Ovovivipar", "Mamalia"], answer: 1 },
+        { q: "Benua terbesar di dunia adalah ...", options: ["Afrika", "Asia", "Eropa", "Amerika"], answer: 1 },
+        { q: "Alat pernapasan pada ikan adalah ...", options: ["Paru-paru", "Insang", "Kulit", "Trakea"], answer: 1 },
+        { q: "Bahasa resmi negara Jepang adalah ...", options: ["Mandarin", "Jepang", "Korea", "Inggris"], answer: 1 },
+        { q: "Warna dasar terdiri dari ...", options: ["Merah, kuning, biru", "Hijau, ungu, merah", "Hitam, putih, abu", "Oranye, biru, hijau"], answer: 0 },
+        { q: "Gunung tertinggi di dunia adalah ...", options: ["Kilimanjaro", "Everest", "Fuji", "Semeru"], answer: 1 },
+        { q: "Lambang kimia air adalah ...", options: ["O2", "CO2", "H2O", "NaCl"], answer: 2 },
+        { q: "Negara dengan jumlah penduduk terbanyak di dunia adalah ...", options: ["India", "China", "Amerika Serikat", "Indonesia"], answer: 1 },
+        { q: "Alat untuk mengukur suhu adalah ...", options: ["Barometer", "Termometer", "Higrometer", "Anemometer"], answer: 1 },
+        { q: "Pahlawan wanita dari Aceh adalah ...", options: ["R.A Kartini", "Cut Nyak Dien", "Martha Christina", "Dewi Sartika"], answer: 1 },
+        { q: "Matahari terbit di arah ...", options: ["Barat", "Selatan", "Timur", "Utara"], answer: 2 },
+        { q: "Ibukota provinsi Jawa Barat adalah ...", options: ["Bogor", "Bandung", "Bekasi", "Cirebon"], answer: 1 },
+        { q: "Hewan pemakan daging disebut ...", options: ["Herbivora", "Omnivora", "Karnivora", "Insektivora"], answer: 2 },
+        { q: "Alat musik tradisional dari Jawa Barat adalah ...", options: ["Angklung", "Gamelan", "Sasando", "Tifa"], answer: 0 },
+        { q: "Lapisan atmosfer terluar adalah ...", options: ["Troposfer", "Stratosfer", "Mesosfer", "Eksosfer"], answer: 3 },
+        { q: "Negara yang dijuluki Negeri Sakura adalah ...", options: ["Korea", "Jepang", "China", "Thailand"], answer: 1 },
+        { q: "Proses tumbuhan membuat makanan disebut ...", options: ["Respirasi", "Fotosintesis", "Evaporasi", "Transpirasi"], answer: 1 },
+        { q: "Sungai terpanjang di dunia adalah ...", options: ["Amazon", "Nil", "Mississippi", "Yangtze"], answer: 1 },
+        { q: "Satuan panjang dalam SI adalah ...", options: ["Gram", "Meter", "Liter", "Sekon"], answer: 1 },
+        { q: "Indonesia merdeka pada tahun ...", options: ["1942", "1945", "1950", "1965"], answer: 1 },
+        { q: "Alat untuk melihat benda kecil adalah ...", options: ["Teleskop", "Mikroskop", "Lup", "Periskop"], answer: 1 },
+        { q: "Bintang pada siang hari adalah ...", options: ["Bulan", "Matahari", "Mars", "Venus"], answer: 1 },
+        { q: "Ibukota negara Thailand adalah ...", options: ["Hanoi", "Bangkok", "Manila", "Kuala Lumpur"], answer: 1 },
+        { q: "Planet yang memiliki cincin adalah ...", options: ["Mars", "Venus", "Saturnus", "Merkurius"], answer: 2 },
+        { q: "Organ peredaran darah manusia adalah ...", options: ["Paru-paru", "Jantung", "Ginjal", "Hati"], answer: 1 },
+        { q: "Bahasa Inggris dari buku adalah ...", options: ["Pen", "Book", "Table", "Chair"], answer: 1 },
+        { q: "Negara dengan menara Eiffel adalah ...", options: ["Italia", "Inggris", "Prancis", "Spanyol"], answer: 2 },
+        { q: "Gunung tertinggi di Indonesia adalah ...", options: ["Semeru", "Rinjani", "Kerinci", "Puncak Jaya"], answer: 3 },
+        { q: "Hewan yang hidup di dua alam disebut ...", options: ["Reptil", "Amfibi", "Mamalia", "Aves"], answer: 1 },
+        { q: "Alat musik khas NTT adalah ...", options: ["Angklung", "Sasando", "Kolintang", "Rebab"], answer: 1 },
+        { q: "Negara dengan Patung Liberty adalah ...", options: ["Kanada", "Inggris", "Amerika Serikat", "Australia"], answer: 2 },
+        { q: "Planet terdekat dengan matahari adalah ...", options: ["Venus", "Mars", "Merkurius", "Bumi"], answer: 2 },
+        { q: "Zat cair berubah menjadi gas disebut ...", options: ["Kondensasi", "Evaporasi", "Sublimasi", "Kristalisasi"], answer: 1 },
+        { q: "Lagu kebangsaan Indonesia adalah ...", options: ["Indonesia Raya", "Tanah Airku", "Garuda Pancasila", "Bagimu Negeri"], answer: 0 },
+        { q: "Organ untuk berpikir adalah ...", options: ["Jantung", "Otak", "Paru-paru", "Hati"], answer: 1 },
+        { q: "Negara tetangga Indonesia di utara adalah ...", options: ["Australia", "Malaysia", "India", "Jepang"], answer: 1 },
+        { q: "Mata uang Jepang adalah ...", options: ["Won", "Yen", "Dollar", "Baht"], answer: 1 },
+        { q: "Warna hasil campuran merah dan kuning adalah ...", options: ["Hijau", "Ungu", "Oranye", "Biru"], answer: 2 },
+        { q: "Logam yang berwujud cair pada suhu ruang adalah ...", options: ["Besi", "Emas", "Raksa", "Perak"], answer: 2 },
+        { q: "Kereta api cepat pertama di Indonesia menghubungkan ...", options: ["Jakarta-Surabaya", "Jakarta-Bandung", "Bandung-Yogyakarta", "Surabaya-Malang"], answer: 1 },
+        { q: "Penemu lampu pijar adalah ...", options: ["Nikola Tesla", "Albert Einstein", "Thomas Alva Edison", "Isaac Newton"], answer: 2 },
+        { q: "Tari Kecak berasal dari ...", options: ["Jawa Timur", "Bali", "Sumatera Barat", "DKI Jakarta"], answer: 1 },
+        { q: "Mata uang resmi Uni Eropa adalah ...", options: ["Poundsterling", "Dollar", "Euro", "Yen"], answer: 2 },
+        { q: "Hewan nasional Australia adalah ...", options: ["Koala", "Kangguru", "Emu", "Wombat"], answer: 1 },
+        { q: "Candi Borobudur bercorak agama ...", options: ["Hindu", "Buddha", "Islam", "Konghucu"], answer: 1 },
+        { q: "Gurun terluas di dunia adalah ...", options: ["Sahara", "Gobi", "Kalahari", "Arab"], answer: 0 }
+      ],
+      "agama": [
+        { q: "Rukun Islam yang pertama adalah...", options: ["Shalat", "Zakat", "Syahadat", "Puasa"], answer: 2 },
+        { q: "Nabi terakhir dalam ajaran Islam adalah...", options: ["Nabi Musa", "Nabi Isa", "Nabi Muhammad", "Nabi Ibrahim"], answer: 2 },
+        { q: "Kitab suci umat Islam adalah...", options: ["Taurat", "Zabur", "Injil", "Al-Quran"], answer: 3 },
+        { q: "Malaikat yang bertugas menyampaikan wahyu adalah...", options: ["Mikail", "Jibril", "Israfil", "Izrail"], answer: 1 },
+        { q: "Ibadah puasa wajib dilaksanakan pada bulan...", options: ["Rajab", "Sya'ban", "Ramadhan", "Syawal"], answer: 2 },
+        { q: "Shalat fardhu dalam sehari semalam berjumlah... waktu.", options: ["3", "4", "5", "6"], answer: 2 },
+        { q: "Malaikat yang bertugas mencabut nyawa adalah...", options: ["Jibril", "Mikail", "Izrail", "Israfil"], answer: 2 },
+        { q: "Arah kiblat umat Islam saat shalat menghadap ke...", options: ["Masjidil Aqsa", "Ka'bah", "Masjid Nabawi", "Gua Hira"], answer: 1 },
+        { q: "Zakat yang wajib dikeluarkan setiap menjelang Idul Fitri disebut...", options: ["Zakat Mal", "Zakat Fitrah", "Zakat Profesi", "Infaq"], answer: 1 },
+        { q: "Rukun Iman berjumlah...", options: ["4", "5", "6", "7"], answer: 2 },
+        { q: "Nabi yang mendapat mukjizat membelah lautan adalah...", options: ["Nabi Nuh", "Nabi Musa", "Nabi Ibrahim", "Nabi Isa"], answer: 1 },
+        { q: "Nama paman Nabi Muhammad SAW yang sangat membantunya namun tidak masuk Islam adalah...", options: ["Abu Jahal", "Abu Lahab", "Abu Thalib", "Hamzah"], answer: 2 },
+        { q: "Surah pertama dalam Al-Quran adalah...", options: ["Al-Baqarah", "Yasin", "Al-Fatihah", "Al-Ikhlas"], answer: 2 },
+        { q: "Surah terakhir dalam urutan mushaf Al-Quran adalah...", options: ["Al-Falaq", "An-Nas", "Al-Ikhlas", "Al-Asr"], answer: 1 },
+        { q: "Ibadah haji dilaksanakan di kota...", options: ["Madinah", "Makkah", "Riyadh", "Jeddah"], answer: 1 },
+        { q: "Malaikat peniup sangkakala pada hari kiamat adalah...", options: ["Jibril", "Mikail", "Israfil", "Rakib"], answer: 2 },
+        { q: "Kitab Taurat diturunkan kepada Nabi...", options: ["Daud", "Musa", "Isa", "Muhammad"], answer: 1 },
+        { q: "Sahabat Nabi yang mendapat gelar Al-Faruq adalah...", options: ["Abu Bakar", "Umar bin Khattab", "Utsman", "Ali"], answer: 1 },
+        { q: "Puasa sunnah yang dilaksanakan pada hari Senin dan Kamis hukumnya...", options: ["Wajib", "Haram", "Sunnah", "Makruh"], answer: 2 },
+        { q: "Ayat pertama yang diturunkan kepada Nabi Muhammad SAW adalah dari surah...", options: ["Al-Alaq", "Al-Muddassir", "Al-Fatihah", "Al-Baqarah"], answer: 0 },
+        { q: "Shalat sunnah yang dilakukan pada malam bulan Ramadhan adalah...", options: ["Tahajud", "Dhuha", "Tarawih", "Witir"], answer: 2 },
+        { q: "Istri pertama Nabi Muhammad SAW bernama...", options: ["Aisyah", "Khadijah", "Fatimah", "Zainab"], answer: 1 },
+        { q: "Peristiwa perjalanan Nabi Muhammad dari Masjidil Haram ke Masjidil Aqsa lalu ke Sidratul Muntaha disebut...", options: ["Hijrah", "Nuzulul Quran", "Isra Mi'raj", "Fathu Makkah"], answer: 2 },
+        { q: "Sahabat Nabi yang menggantikan beliau tidur di kasur saat hijrah adalah...", options: ["Abu Bakar", "Umar", "Utsman", "Ali bin Abi Thalib"], answer: 3 },
+        { q: "Sifat wajib Allah yang berarti Maha Mengetahui adalah...", options: ["Qudrat", "Iradat", "'Ilmun", "Hayat"], answer: 2 },
+        { q: "Sifat mustahil bagi Rasul yang berarti berbohong adalah...", options: ["Kizib", "Khianat", "Kitman", "Baladah"], answer: 0 },
+        { q: "Nabi yang pernah ditelan oleh ikan paus adalah...", options: ["Nabi Ayyub", "Nabi Yunus", "Nabi Yusuf", "Nabi Sulaiman"], answer: 1 },
+        { q: "Nabi yang memiliki mukjizat bisa berbicara dengan hewan adalah...", options: ["Nabi Daud", "Nabi Sulaiman", "Nabi Musa", "Nabi Ibrahim"], answer: 1 },
+        { q: "Al-Quran terdiri dari berapa juz?", options: ["20", "25", "30", "40"], answer: 2 },
+        { q: "Shalat fardhu yang jumlah rakaatnya paling sedikit adalah...", options: ["Subuh", "Dzuhur", "Ashar", "Maghrib"], answer: 0 },
+        { q: "Malaikat yang bertugas mencatat amal baik adalah...", options: ["Rakib", "Atid", "Munkar", "Nakir"], answer: 0 },
+        { q: "Malaikat yang bertugas menjaga pintu surga adalah...", options: ["Malik", "Ridwan", "Mikail", "Israfil"], answer: 1 },
+        { q: "Nabi yang disembelih oleh ayahnya (Nabi Ibrahim) karena perintah Allah adalah...", options: ["Nabi Ishaq", "Nabi Ismail", "Nabi Yaqub", "Nabi Yusuf"], answer: 1 },
+        { q: "Mandi wajib setelah haid, nifas, atau junub hukumnya...", options: ["Sunnah", "Mubah", "Makruh", "Wajib"], answer: 3 },
+        { q: "Masjid pertama yang dibangun Nabi Muhammad SAW adalah...", options: ["Masjidil Haram", "Masjid Nabawi", "Masjid Quba", "Masjidil Aqsa"], answer: 2 },
+        { q: "Perang pertama dalam sejarah Islam adalah perang...", options: ["Uhud", "Khandaq", "Badar", "Tabuk"], answer: 2 },
+        { q: "Kalimat 'Subhanallah' disebut juga bacaan...", options: ["Tahmid", "Tasbih", "Tahlil", "Takbir"], answer: 1 },
+        { q: "Berbuat baik dan berbakti kepada orang tua dalam Islam disebut...", options: ["Birrul Walidain", "Silaturahmi", "Husnuzan", "Tawadhu"], answer: 0 },
+        { q: "Orang yang menyekutukan Allah (syirik) disebut...", options: ["Kafir", "Munafik", "Musyrik", "Fasik"], answer: 2 },
+        { q: "Orang yang berhak menerima zakat disebut...", options: ["Muzakki", "Mustahiq", "Amil", "Gharim"], answer: 1 },
+        { q: "Sujud yang dilakukan karena lupa rakaat shalat disebut sujud...", options: ["Tilawah", "Syukur", "Sahwi", "Rukun"], answer: 2 },
+        { q: "Toleransi antar umat beragama dalam Islam sangat dianjurkan, prinsip ini sesuai dengan surah...", options: ["Al-Kafirun", "Al-Ikhlas", "Al-Falaq", "An-Nas"], answer: 0 },
+        { q: "Hari raya Idul Adha diperingati setiap tanggal...", options: ["1 Syawal", "10 Dzulhijjah", "1 Muharram", "12 Rabiul Awal"], answer: 1 },
+        { q: "Berlari-lari kecil antara bukit Safa dan Marwah saat Haji/Umrah disebut...", options: ["Tawaf", "Wukuf", "Sa'i", "Tahallul"], answer: 2 },
+        { q: "Air zam-zam muncul pertama kali di bawah kaki nabi...", options: ["Ibrahim", "Ismail", "Ishaq", "Musa"], answer: 1 },
+        { q: "Ibu susu Nabi Muhammad SAW yang paling terkenal adalah...", options: ["Aminah", "Khadijah", "Halimah As-Sa'diyah", "Fatimah"], answer: 2 },
+        { q: "Ayat kursi terdapat di dalam surah...", options: ["Al-Baqarah", "Ali Imran", "An-Nisa", "Al-Kahfi"], answer: 0 },
+        { q: "Jumlah huruf hijaiyah (standar) adalah...", options: ["26", "28 atau 29", "30 atau 31", "32"], answer: 1 },
+        { q: "Perilaku suka pamer amal ibadah agar dipuji orang disebut...", options: ["Riya", "Ujub", "Takabur", "Sum'ah"], answer: 0 },
+        { q: "Doa Sapu Jagat adalah doa memohon kebaikan di...", options: ["Dunia", "Akhirat", "Dunia dan Akhirat", "Alam Kubur"], answer: 2 }
+      ],
+      "matematika": [
+        { q: "Hasil dari 5 + 5 adalah...", options: ["5", "10", "15", "20"], answer: 1 },
+        { q: "Hasil dari 12 x 12 adalah...", options: ["120", "124", "144", "150"], answer: 2 },
+        { q: "Akar kuadrat dari 81 adalah...", options: ["7", "8", "9", "10"], answer: 2 },
+        { q: "100 dibagi 4 hasilnya...", options: ["20", "25", "30", "40"], answer: 1 },
+        { q: "25% dari 200 adalah...", options: ["25", "40", "50", "75"], answer: 2 },
+        { q: "Rumus luas persegi panjang adalah...", options: ["s x s", "p x l", "1/2 x a x t", "phi x r x r"], answer: 1 },
+        { q: "Bangun datar yang memiliki 3 sisi disebut...", options: ["Persegi", "Lingkaran", "Segitiga", "Trapesium"], answer: 2 },
+        { q: "3 kuadrat (3²) sama dengan...", options: ["6", "9", "12", "27"], answer: 1 },
+        { q: "7 x 8 = ...", options: ["54", "56", "62", "64"], answer: 1 },
+        { q: "Bilangan prima terkecil adalah...", options: ["0", "1", "2", "3"], answer: 2 },
+        { q: "1 jam sama dengan berapa menit?", options: ["30", "60", "100", "120"], answer: 1 },
+        { q: "1 kilometer sama dengan berapa meter?", options: ["10", "100", "1.000", "10.000"], answer: 2 },
+        { q: "Hasil dari 50 - 15 + 5 adalah...", options: ["30", "40", "45", "50"], answer: 1 },
+        { q: "0,5 jika diubah menjadi pecahan biasa adalah...", options: ["1/4", "1/3", "1/2", "3/4"], answer: 2 },
+        { q: "Sudut siku-siku besarnya adalah...", options: ["45°", "60°", "90°", "180°"], answer: 2 },
+        { q: "Akar pangkat 3 dari 27 adalah...", options: ["2", "3", "4", "9"], answer: 1 },
+        { q: "Berapa banyak sisi pada kubus?", options: ["4", "6", "8", "12"], answer: 1 },
+        { q: "Luas segitiga yang alasnya 10 cm dan tinggi 6 cm adalah...", options: ["16", "30", "60", "100"], answer: 1 },
+        { q: "1/2 ditambah 1/4 hasilnya adalah...", options: ["1/6", "2/6", "3/4", "2/4"], answer: 2 },
+        { q: "4³ (4 pangkat 3) = ...", options: ["12", "16", "64", "256"], answer: 2 },
+        { q: "Bilangan genap setelah 18 adalah...", options: ["19", "20", "22", "24"], answer: 1 },
+        { q: "1 kodi setara dengan...", options: ["10 buah", "12 buah", "20 buah", "144 buah"], answer: 2 },
+        { q: "1 lusin setara dengan...", options: ["10 buah", "12 buah", "20 buah", "144 buah"], answer: 1 },
+        { q: "Jika harga 1 pulpen Rp 2.500, maka harga 4 pulpen adalah...", options: ["5.000", "7.500", "10.000", "12.500"], answer: 2 },
+        { q: "Angka romawi X bernilai...", options: ["5", "10", "50", "100"], answer: 1 },
+        { q: "Angka romawi V bernilai...", options: ["5", "10", "50", "100"], answer: 0 },
+        { q: "1 abad setara dengan berapa tahun?", options: ["10", "50", "100", "1.000"], answer: 2 },
+        { q: "1 windu setara dengan berapa tahun?", options: ["5", "8", "10", "100"], answer: 1 },
+        { q: "Sisi terpanjang pada segitiga siku-siku disebut...", options: ["Alas", "Tinggi", "Hipotenusa", "Jari-jari"], answer: 2 },
+        { q: "Keliling persegi yang sisinya 5 cm adalah...", options: ["10 cm", "20 cm", "25 cm", "50 cm"], answer: 1 },
+        { q: "Jika x + 5 = 12, maka nilai x adalah...", options: ["5", "6", "7", "8"], answer: 2 },
+        { q: "Nilai Phi (π) pada lingkaran kira-kira...", options: ["2,14", "3,14", "4,14", "5,14"], answer: 1 },
+        { q: "3/4 jika dijadikan persen menjadi...", options: ["25%", "50%", "75%", "100%"], answer: 2 },
+        { q: "Volume balok dicari dengan rumus...", options: ["p+l+t", "p x l x t", "s x s x s", "1/2 x p x l"], answer: 1 },
+        { q: "FPB dari 12 dan 18 adalah...", options: ["3", "4", "6", "36"], answer: 2 },
+        { q: "KPK dari 4 dan 6 adalah...", options: ["10", "12", "24", "48"], answer: 1 },
+        { q: "Bilangan negatif dikali bilangan negatif hasilnya...", options: ["Positif", "Negatif", "Nol", "Pecahan"], answer: 0 },
+        { q: "Hasil dari -5 + 8 adalah...", options: ["-13", "-3", "3", "13"], answer: 2 },
+        { q: "1 gross setara dengan...", options: ["12", "20", "100", "144"], answer: 3 },
+        { q: "Sudut lurus besarnya...", options: ["90°", "180°", "270°", "360°"], answer: 1 },
+        { q: "Pecahan yang senilai dengan 2/3 adalah...", options: ["3/4", "4/6", "4/9", "6/12"], answer: 1 },
+        { q: "Nilai rata-rata dari 4, 6, dan 8 adalah...", options: ["5", "6", "7", "8"], answer: 1 },
+        { q: "Jaring-jaring yang terdiri dari 6 bujur sangkar membentuk bangun...", options: ["Balok", "Prisma", "Kubus", "Limas"], answer: 2 },
+        { q: "20 dibagi 0,5 hasilnya...", options: ["10", "25", "40", "100"], answer: 2 },
+        { q: "80% jika diubah menjadi desimal adalah...", options: ["0,08", "0,8", "8,0", "80"], answer: 1 },
+        { q: "1 liter setara dengan...", options: ["1 cm³", "1 dm³", "1 m³", "100 ml"], answer: 1 },
+        { q: "Akar kuadrat dari 169 adalah...", options: ["11", "12", "13", "14"], answer: 2 },
+        { q: "Garis yang membagi lingkaran menjadi 2 bagian sama besar disebut...", options: ["Jari-jari", "Diameter", "Busur", "Tali Busur"], answer: 1 },
+        { q: "Hasil dari 15 x 0 adalah...", options: ["0", "1", "15", "150"], answer: 0 },
+        { q: "Rumus keliling lingkaran adalah...", options: ["π x r x r", "2 x π x r", "p x l", "s x s"], answer: 1 }
+      ]
+    };
 
     // --- STATE VARIABLES ---
     let playerName = "";
+    let selectedCategory = "umum"; // Default category
     let selectedCount = 10; // Default 10
     let questions = [];
     let currentIdx = 0;
@@ -553,12 +660,23 @@
       btnSubmitName: document.getElementById('btnSubmitName'),
       btnStartGame: document.getElementById('btnStartGame'),
       btnPlayAgain: document.getElementById('btnPlayAgain'),
-      settingBtns: document.querySelectorAll('#screenStart .btn-outline[data-count]'),
+      
+      catBtns: document.querySelectorAll('.category-btn'),
+      countBtns: document.querySelectorAll('.count-btn'),
 
       hudName: document.getElementById('hudName'),
       hudScore: document.getElementById('hudScore'),
       hudProgress: document.getElementById('hudProgress'),
+      
+      // AUDIO
+      bgmUpload: document.getElementById('bgmUpload'),
+      bgmFileName: document.getElementById('bgmFileName'),
+      localAudioPlayer: document.getElementById('localAudioPlayer'),
+      audioControls: document.getElementById('audioControls'),
+      btnMute: document.getElementById('btnMute'),
+      volSlider: document.getElementById('volSlider'),
 
+      // QUIZ UI
       qNumber: document.getElementById('qNumber'),
       qText: document.getElementById('qText'),
       timeLeft: document.getElementById('timeLeft'),
@@ -588,11 +706,9 @@
     applyTheme();
 
     // --- ANTI-CHEAT LOGIC ---
-    // Cegah klik kanan & Copy
     document.addEventListener('contextmenu', e => e.preventDefault());
     document.addEventListener('copy', e => e.preventDefault());
     
-    // Deteksi pindah tab
     document.addEventListener('visibilitychange', () => {
       if (document.hidden && els.scrQuiz.classList.contains('hidden') === false && !isAnswered) {
         handleCheat();
@@ -606,6 +722,63 @@
     window.closeCheatWarning = () => {
       els.cheatOverlay.style.display = 'none';
     };
+
+    // --- LOCAL AUDIO BGM LOGIC ---
+    let isBgmLoaded = false;
+    let bgmVolume = 0.3; // Default 30%
+
+    els.bgmUpload.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const objectUrl = URL.createObjectURL(file);
+        els.localAudioPlayer.src = objectUrl;
+        els.localAudioPlayer.volume = bgmVolume;
+        els.bgmFileName.innerText = `Terpilih: ${file.name}`;
+        els.bgmFileName.style.color = "var(--success)";
+        isBgmLoaded = true;
+      }
+    });
+
+    els.btnMute.addEventListener('click', () => {
+      if(els.localAudioPlayer.muted) {
+        els.localAudioPlayer.muted = false;
+        els.btnMute.innerText = '🔊';
+      } else {
+        els.localAudioPlayer.muted = true;
+        els.btnMute.innerText = '🔇';
+      }
+    });
+
+    els.volSlider.addEventListener('input', (e) => {
+      const vol = e.target.value / 100;
+      bgmVolume = vol;
+      els.localAudioPlayer.volume = vol;
+      if (vol === 0) {
+        els.localAudioPlayer.muted = true;
+        els.btnMute.innerText = '🔇';
+      } else {
+        els.localAudioPlayer.muted = false;
+        els.btnMute.innerText = '🔊';
+      }
+    });
+
+    // --- WEB AUDIO API (Untuk Beep 5 detik terakhir) ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playBeep() {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(800, audioCtx.currentTime); 
+      gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + 0.1); 
+    }
 
     // --- NAVIGATION LOGIC ---
     function switchScreen(screenId) {
@@ -629,8 +802,13 @@
         playerName = "";
         els.nameInput.value = "";
         els.hudName.classList.add('hidden');
-        if(ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo(); // Stop Music
-        if(document.fullscreenElement) document.exitFullscreen(); // Keluar fullscreen
+        els.audioControls.classList.add('hidden');
+        
+        // Matikan BGM
+        els.localAudioPlayer.pause();
+        els.localAudioPlayer.currentTime = 0;
+        
+        if(document.fullscreenElement) document.exitFullscreen();
         switchScreen('screenName');
       }
     });
@@ -646,49 +824,61 @@
       els.hudName.innerText = `👤 ${playerName}`;
       els.hudName.classList.remove('hidden');
       
-      // Auto Fullscreen Saat Masuk
       if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(err => {
-          console.warn("Auto-fullscreen diblokir oleh browser.");
-        });
+        document.documentElement.requestFullscreen().catch(err => console.warn("Auto-fullscreen blocked"));
       }
-
-      // Pastikan Audio Context di-resume user gesture
-      if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
+      if (audioCtx.state === 'suspended') audioCtx.resume();
 
       switchScreen('screenStart');
     });
 
     // --- FLOW: SETTINGS ---
-    els.settingBtns.forEach(btn => {
+    // Pilihan Kategori
+    els.catBtns.forEach(btn => {
       btn.addEventListener('click', () => {
-        els.settingBtns.forEach(b => {
-          b.classList.remove('active-setting');
-        });
+        els.catBtns.forEach(b => b.classList.remove('active-setting'));
+        btn.classList.add('active-setting');
+        selectedCategory = btn.dataset.cat;
+      });
+    });
+
+    // Pilihan Jumlah Soal
+    els.countBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        els.countBtns.forEach(b => b.classList.remove('active-setting'));
         btn.classList.add('active-setting');
         selectedCount = parseInt(btn.dataset.count);
       });
     });
 
-    // Acak Urutan Bank Soal Manual
     els.btnShuffle.addEventListener('click', () => {
-      questionBank.sort(() => Math.random() - 0.5);
-      showToast("✅ Bank Soal Berhasil Diacak!");
+      allQuestions[selectedCategory].sort(() => Math.random() - 0.5);
+      showToast("✅ Bank Soal Kategori Ini Berhasil Diacak!");
+    });
+
+    // --- FULLSCREEN LOGIC ---
+    document.getElementById('btnFullscreen').addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => console.warn(err));
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+      }
     });
 
     // --- FLOW: START GAME ---
     els.btnStartGame.addEventListener('click', () => {
-      // Putar BGM YouTube
-      if(ytPlayer && ytPlayer.playVideo) {
-        ytPlayer.playVideo();
+      // Putar BGM Lokal jika ada file
+      if (isBgmLoaded) {
+        els.audioControls.classList.remove('hidden');
+        els.localAudioPlayer.play().catch(err => console.warn("Autoplay blocked:", err));
+      } else {
+        els.audioControls.classList.add('hidden'); // Sembunyikan kontrol BGM jika tidak ada lagu
       }
 
-      // Potong pertanyaan berdasarkan yang dipilih
-      questions = questionBank.slice(0, Math.min(selectedCount, questionBank.length));
-      // Acak urutan pertanyaan yg sudah terpilih
-      questions.sort(() => Math.random() - 0.5);
+      // Ambil soal berdasarkan kategori
+      let activeBank = allQuestions[selectedCategory];
+      questions = activeBank.slice(0, Math.min(selectedCount, activeBank.length));
+      questions.sort(() => Math.random() - 0.5); // Acak lagi yang sudah terpilih
       
       currentIdx = 0; score = 0; correct = 0; wrong = 0;
       updateHud();
@@ -712,7 +902,6 @@
         secondsLeft--;
         els.timeLeft.innerText = secondsLeft;
         
-        // 5 Detik terakhir -> ganti warna merah & mainkan Beep
         if(secondsLeft <= 5 && secondsLeft > 0) {
           els.timeLeft.style.color = "var(--danger)";
           playBeep();
@@ -720,7 +909,7 @@
         
         if(secondsLeft <= 0) {
           clearInterval(timer);
-          lockAnswer(null, true, false); // Timeout
+          lockAnswer(null, true, false); 
         }
       }, 1000);
     }
@@ -759,12 +948,11 @@
       const buttons = els.optGrid.querySelectorAll('.opt-btn');
       buttons.forEach(b => b.disabled = true);
 
-      // Logika Penilaian
       if(isCheat) {
         wrong++;
         els.feedZone.innerHTML = `<span style="color: var(--danger)">⛔ Terdeteksi Nyontek! Soal disalahkan. Lanjut dalam <b id="cdTxt">3</b>...</span>`;
         els.feedZone.style.borderColor = "var(--danger)";
-        buttons[q.answer].classList.add('correct'); // Tetap tunjukkan yg benar
+        buttons[q.answer].classList.add('correct'); 
       } 
       else if(isTimeout) {
         wrong++;
@@ -789,7 +977,6 @@
       updateHud();
       els.progFill.style.width = `${((currentIdx + 1) / questions.length) * 100}%`;
 
-      // Countdown 3 Detik
       let cd = 3;
       clearInterval(countdownInterval);
       countdownInterval = setInterval(() => {
@@ -814,11 +1001,8 @@
 
     // --- FINISH & LEADERBOARD ---
     function finishGame() {
-      // Hentikan BGM Saat Permainan Berakhir
-      if(ytPlayer && ytPlayer.pauseVideo) {
-        ytPlayer.pauseVideo();
-      }
-
+      els.localAudioPlayer.pause(); // Stop BGM
+      
       switchScreen('screenResult');
       document.getElementById('finalScore').innerText = score;
       document.getElementById('finalCorrect').innerText = correct;
@@ -836,10 +1020,12 @@
 
     function saveLeaderboard() {
       let lb = JSON.parse(localStorage.getItem('cc_leaderboard') || '[]');
-      lb.push({ name: playerName, score: score, time: new Date().getTime() });
-      // Sort: Highest score first. If tie, newest first.
+      // Simpan format skor: "Skor pts (Kategori)"
+      const catName = selectedCategory === "umum" ? "Umum" : (selectedCategory === "agama" ? "Agama" : "MTK");
+      lb.push({ name: playerName, score: score, cat: catName, time: new Date().getTime() });
+      
       lb.sort((a, b) => b.score - a.score || b.time - a.time);
-      lb = lb.slice(0, 10); // Keep top 10
+      lb = lb.slice(0, 10); 
       localStorage.setItem('cc_leaderboard', JSON.stringify(lb));
     }
 
@@ -855,15 +1041,17 @@
 
       lb.forEach((entry, idx) => {
         let rankColor = "var(--text-main)";
-        if(idx === 0) rankColor = "#d97706"; // Emas/Warning color
-        if(idx === 1) rankColor = "#64748b"; // Perak
-        if(idx === 2) rankColor = "#b45309"; // Perunggu
+        if(idx === 0) rankColor = "#d97706";
+        if(idx === 1) rankColor = "#64748b";
+        if(idx === 2) rankColor = "#b45309";
+
+        const catBadge = entry.cat ? `<span style="font-size:10px; opacity:0.7; margin-left:5px;">(${entry.cat})</span>` : '';
 
         const div = document.createElement('div');
         div.className = 'lb-item';
         div.innerHTML = `
           <div class="lb-rank" style="color: ${rankColor}">${idx + 1}</div>
-          <div class="lb-name">${entry.name}</div>
+          <div class="lb-name">${entry.name} ${catBadge}</div>
           <div class="lb-score">${entry.score} pts</div>
         `;
         container.appendChild(div);
