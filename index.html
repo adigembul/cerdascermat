@@ -6,6 +6,8 @@
   <title>Game Cerdas Cermat Modern</title>
   <!-- Menggunakan Font Montserrat -->
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- YouTube Iframe API -->
+  <script src="https://www.youtube.com/iframe_api"></script>
   <style>
     /* VARIABLES (Dual Theme) */
     :root {
@@ -280,6 +282,9 @@
 </head>
 <body>
 
+  <!-- HIDDEN YOUTUBE PLAYER FOR BGM -->
+  <div id="ytplayer" class="hidden"></div>
+
   <!-- TOAST NOTIFICATION -->
   <div id="toast">Notifikasi</div>
 
@@ -309,6 +314,7 @@
           <div class="pill hidden" id="hudName">👤 Player</div>
           <div class="pill hidden" id="hudScore">Skor: 0</div>
           <div class="pill hidden" id="hudProgress">0/0</div>
+          <button class="icon-btn" id="btnFullscreen" title="Toggle Fullscreen">⛶</button>
           <button class="icon-btn" id="btnHome" title="Kembali ke Awal">🏠</button>
           <button class="icon-btn" id="themeToggle" title="Ganti Tema">🌙</button>
         </div>
@@ -408,6 +414,64 @@
   </div>
 
   <script>
+    // --- YOUTUBE BGM LOGIC ---
+    let ytPlayer;
+    function onYouTubeIframeAPIReady() {
+      ytPlayer = new YT.Player('ytplayer', {
+        height: '0',
+        width: '0',
+        videoId: '3NycM9lYdRI', // Link yang diberikan
+        playerVars: {
+          'autoplay': 0,
+          'controls': 0,
+          'loop': 1,
+          'playlist': '3NycM9lYdRI' // Wajib agar loop jalan di single video
+        },
+        events: {
+          'onReady': onPlayerReady
+        }
+      });
+    }
+
+    function onPlayerReady(event) {
+      event.target.setVolume(15); // Volume samar 15%
+    }
+
+    // --- WEB AUDIO API (Untuk Beep 5 detik terakhir) ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playBeep() {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(800, audioCtx.currentTime); // Frekuensi nada tinggi (800Hz)
+      gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); // Volume Beep (10%)
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + 0.1); // Durasi Beep (100ms)
+    }
+
+    // --- FULLSCREEN LOGIC ---
+    const btnFullscreen = document.getElementById('btnFullscreen');
+    
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          console.warn(`Gagal masuk mode fullscreen: ${err.message}`);
+        });
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    }
+    btnFullscreen.addEventListener('click', toggleFullscreen);
+
     // --- QUESTION BANK (50 Soal) ---
     const questionBank = [
       { q: "Ibu kota negara Indonesia adalah ...", options: ["Bandung", "Surabaya", "Jakarta", "Medan"], answer: 2 },
@@ -565,6 +629,8 @@
         playerName = "";
         els.nameInput.value = "";
         els.hudName.classList.add('hidden');
+        if(ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo(); // Stop Music
+        if(document.fullscreenElement) document.exitFullscreen(); // Keluar fullscreen
         switchScreen('screenName');
       }
     });
@@ -579,6 +645,19 @@
       playerName = val;
       els.hudName.innerText = `👤 ${playerName}`;
       els.hudName.classList.remove('hidden');
+      
+      // Auto Fullscreen Saat Masuk
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          console.warn("Auto-fullscreen diblokir oleh browser.");
+        });
+      }
+
+      // Pastikan Audio Context di-resume user gesture
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+
       switchScreen('screenStart');
     });
 
@@ -601,6 +680,11 @@
 
     // --- FLOW: START GAME ---
     els.btnStartGame.addEventListener('click', () => {
+      // Putar BGM YouTube
+      if(ytPlayer && ytPlayer.playVideo) {
+        ytPlayer.playVideo();
+      }
+
       // Potong pertanyaan berdasarkan yang dipilih
       questions = questionBank.slice(0, Math.min(selectedCount, questionBank.length));
       // Acak urutan pertanyaan yg sudah terpilih
@@ -627,7 +711,13 @@
       timer = setInterval(() => {
         secondsLeft--;
         els.timeLeft.innerText = secondsLeft;
-        if(secondsLeft <= 5) els.timeLeft.style.color = "var(--danger)";
+        
+        // 5 Detik terakhir -> ganti warna merah & mainkan Beep
+        if(secondsLeft <= 5 && secondsLeft > 0) {
+          els.timeLeft.style.color = "var(--danger)";
+          playBeep();
+        }
+        
         if(secondsLeft <= 0) {
           clearInterval(timer);
           lockAnswer(null, true, false); // Timeout
@@ -724,6 +814,11 @@
 
     // --- FINISH & LEADERBOARD ---
     function finishGame() {
+      // Hentikan BGM Saat Permainan Berakhir
+      if(ytPlayer && ytPlayer.pauseVideo) {
+        ytPlayer.pauseVideo();
+      }
+
       switchScreen('screenResult');
       document.getElementById('finalScore').innerText = score;
       document.getElementById('finalCorrect').innerText = correct;
